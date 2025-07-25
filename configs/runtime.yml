@@ -1,6 +1,6 @@
 print_freq: 1
 output_dir: '/home/lap_awlv/laptq-nedo-fed/runs/data--c1/dfine_hgnetv2_s/logs'
-checkpoint_freq: 15
+checkpoint_freq: 30
 
 
 sync_bn: True

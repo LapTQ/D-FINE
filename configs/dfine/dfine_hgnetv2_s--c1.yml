@@ -1,13 +1,24 @@
 __include__: [
-  '/home/lap_awlv/laptq-nedo-fed/submodules/D-FINE/configs/dataset/dfine-data--c1.yml',    # laptq
-  '../runtime.yml',
-  './include/dataloader.yml',
-  './include/optimizer.yml',
   './include/dfine_hgnetv2.yml',
 ]
 
-output_dir: /home/lap_awlv/laptq-nedo-fed/runs/data--c1/dfine_hgnetv2_s/train-B-E150-LR0.0002    # laptq
+print_freq: 1
+checkpoint_freq: 30
 
+
+sync_bn: True
+find_unused_parameters: False
+
+
+scaler:
+  type: GradScaler
+  enabled: True
+
+use_wandb: False
+project_name: D-FINE # for wandb
+exp_name: baseline # wandb experiment name
+
+output_dir: /home/lap_awlv/laptq-nedo-fed/runs/data--c1/dfine_hgnetv2_s/train-B-E150-LR0.0002    # laptq
 
 DFINE:
   backbone: HGNetv2
@@ -34,10 +45,10 @@ optimizer:
   params:
     -
       params: '^(?=.*backbone)(?!.*norm|bn).*$'
-      lr: 0.0001
+      lr: 0.0001    # laptq
     -
       params: '^(?=.*backbone)(?=.*norm|bn).*$'
-      lr: 0.0001
+      lr: 0.0001    # laptq
       weight_decay: 0.
     -
       params: '^(?=.*(?:encoder|decoder))(?=.*(?:norm|bn|bias)).*$'
@@ -48,14 +59,90 @@ optimizer:
   weight_decay: 0.0001
 
 
+use_amp: True
+use_ema: True
+ema:
+  type: ModelEMA
+  decay: 0.9999
+  warmups: 1000
+  start: 0
+
+
+clip_max_norm: 0.1
+
+
+lr_scheduler:
+  type: MultiStepLR
+  milestones: [500]
+  gamma: 0.1
+
+lr_warmup_scheduler:
+  type: LinearWarmup
+  warmup_duration: 500
+
+
 # Increase to search for the optimal ema
 epochs: 150 # 120 + 4n    # laptq
+
+task: detection
+
+evaluator:
+  type: CocoEvaluator
+  iou_types: ['bbox', ]
+
+num_classes: 1     # laptq
+remap_mscoco_category: False
+
 train_dataloader:
+  type: DataLoader
   dataset:
+    type: CocoDetection
+    img_folder: /    # laptq
+    ann_file: /home/lap_awlv/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/train_d1_90k.json    # laptq
+    return_masks: False
     transforms:
+      type: Compose
+      ops:
+        - {type: RandomPhotometricDistort, p: 0.5}
+        - {type: RandomZoomOut, fill: 0}
+        - {type: RandomIoUCrop, p: 0.8}
+        - {type: SanitizeBoundingBoxes, min_size: 1}
+        - {type: RandomHorizontalFlip}
+        - {type: Resize, size: [640, 640], }
+        - {type: SanitizeBoundingBoxes, min_size: 1}
+        - {type: ConvertPILImage, dtype: 'float32', scale: True}
+        - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}
       policy:
-        epoch: 130    # laptq
+        name: stop_epoch
+        epoch: 130 # epoch in [71, ~) stop `ops`    # laptq
+        ops: ['RandomPhotometricDistort', 'RandomZoomOut', 'RandomIoUCrop']
+  shuffle: True
+  num_workers: 32    # laptq
+  drop_last: True
+  total_batch_size: 64 # total batch size equals to 32 (4 * 8)    # laptq
   collate_fn:
-    stop_epoch: 130    # laptq
+    type: BatchImageCollateFunction
     ema_restart_decay: 0.9999
+    base_size: 640
     base_size_repeat: 20
+    stop_epoch: 130 # epoch in [72, ~) stop `multiscales`    # laptq
+
+
+val_dataloader:
+  type: DataLoader
+  dataset:
+    type: CocoDetection
+    img_folder: /    # laptq
+    ann_file: /home/lap_awlv/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/valid_d1_90k.json    # laptq
+    return_masks: False
+    transforms:
+      type: Compose
+      ops:
+        - {type: Resize, size: [640, 640], }
+        - {type: ConvertPILImage, dtype: 'float32', scale: True}
+  shuffle: False
+  num_workers: 32    # laptq
+  drop_last: False
+  total_batch_size: 64
+  collate_fn:
+    type: BatchImageCollateFunction

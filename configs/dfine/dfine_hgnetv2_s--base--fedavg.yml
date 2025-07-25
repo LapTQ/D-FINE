@@ -1,7 +1,22 @@
 __include__: [
-  '../runtime.yml',
   './include/dfine_hgnetv2.yml',
 ]
+
+print_freq: 1
+checkpoint_freq: 30
+
+
+sync_bn: True
+find_unused_parameters: False
+
+
+scaler:
+  type: GradScaler
+  enabled: True
+
+use_wandb: False
+project_name: D-FINE # for wandb
+exp_name: baseline # wandb experiment name
 
 output_dir: null    # laptq
 
