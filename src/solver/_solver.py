@@ -341,6 +341,13 @@ class BaseSolver(object):
     def val(self):
         raise NotImplementedError("")
 
+    def add_callback(self, event, callback):
+        if not hasattr(self, 'callbacks'):
+            self.callbacks = {}
+        if event not in self.callbacks:
+            self.callbacks[event] = []
+        self.callbacks[event].append(callback)
+
 
 # obj365_classes = [
 #         'Person', 'Sneakers', 'Chair', 'Other Shoes', 'Hat', 'Car', 'Lamp', 'Glasses',

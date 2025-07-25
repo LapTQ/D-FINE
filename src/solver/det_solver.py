@@ -96,6 +96,12 @@ class DetSolver(BaseSolver):
 
             self.last_epoch += 1
 
+            # laptq
+            if hasattr(self, "callbacks"):
+                if "on_train_epoch_end" in self.callbacks:
+                    for callback in self.callbacks["on_train_epoch_end"]:
+                        callback(self)
+
             if self.output_dir and epoch < self.train_dataloader.collate_fn.stop_epoch:
                 checkpoint_paths = [self.output_dir / "last.pth"]
                 # extra checkpoint before LR drop and every 100 epochs

@@ -1,12 +1,12 @@
 __include__: [
-  '/home/lap_awlv/laptq-nedo-fed/submodules/D-FINE/configs/dataset/dfine-data--c1.yml',    # laptq
+  '/home/lap_awlv/laptq-nedo-fed/submodules/D-FINE/configs/dataset/dfine-data--c1--c2.yml',    # laptq
   '../runtime.yml',
   './include/dataloader.yml',
   './include/optimizer.yml',
   './include/dfine_hgnetv2.yml',
 ]
 
-output_dir: /home/lap_awlv/laptq-nedo-fed/runs/data--c1/dfine_hgnetv2_s/train-B-E150-LR0.0002    # laptq
+output_dir: /home/lap_awlv/laptq-nedo-fed/runs/data--c1--c2/dfine_hgnetv2_s/train-B-E150-LR0.0002    # laptq
 
 
 DFINE:
