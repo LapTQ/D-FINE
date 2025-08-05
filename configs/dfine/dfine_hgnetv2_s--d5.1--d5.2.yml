@@ -1,0 +1,216 @@
+print_freq: 1
+checkpoint_freq: 30
+
+
+sync_bn: True
+find_unused_parameters: False
+
+
+scaler:
+  type: GradScaler
+  enabled: True
+
+use_wandb: False
+project_name: D-FINE # for wandb
+exp_name: baseline # wandb experiment name
+
+
+output_dir: /home/lap_awlv/laptq-nedo-fed/outputs/trivials    # laptq
+
+
+optimizer:
+  type: AdamW
+  params:
+    -
+      params: '^(?=.*backbone)(?!.*norm|bn).*$'
+      lr: null    # laptq 0.0001
+    -
+      params: '^(?=.*backbone)(?=.*norm|bn).*$'
+      lr: null    # laptq 0.0001
+      weight_decay: 0.
+    -
+      params: '^(?=.*(?:encoder|decoder))(?=.*(?:norm|bn|bias)).*$'
+      weight_decay: 0.
+
+  lr: null    # laptq 0.0002
+  betas: [0.9, 0.999]
+  weight_decay: 0.0001
+
+
+use_amp: True
+use_ema: True
+ema:
+  type: ModelEMA
+  decay: 0.9999
+  warmups: 1000
+  start: 0
+
+
+clip_max_norm: 0.1
+
+
+lr_scheduler:
+  type: MultiStepLR
+  milestones: [500]
+  gamma: 0.1
+
+lr_warmup_scheduler:
+  type: LinearWarmup
+  warmup_duration: 500
+
+
+# Increase to search for the optimal ema
+epochs: null # 120 + 4n    # laptq 150
+
+
+evaluator:
+  type: CocoEvaluator
+  iou_types: ['bbox', ]
+
+num_classes: 1     # laptq
+remap_mscoco_category: False
+
+
+train_dataloader:
+  type: DataLoader
+  dataset:
+    type: CocoDetection
+    img_folder: /    # laptq
+    ann_file: null    # laptq
+    return_masks: False
+    transforms:
+      type: Compose
+      ops:
+        - {type: RandomPhotometricDistort, p: 0.5}
+        - {type: RandomZoomOut, fill: 0}
+        - {type: RandomIoUCrop, p: 0.8}
+        - {type: SanitizeBoundingBoxes, min_size: 1}
+        - {type: RandomHorizontalFlip}
+        - {type: Resize, size: [640, 640], }
+        - {type: SanitizeBoundingBoxes, min_size: 1}
+        - {type: ConvertPILImage, dtype: 'float32', scale: True}
+        - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}
+      policy:
+        name: stop_epoch
+        epoch: null # epoch in [71, ~) stop `ops`    # laptq 130
+        ops: ['RandomPhotometricDistort', 'RandomZoomOut', 'RandomIoUCrop']
+  shuffle: True
+  num_workers: 32    # laptq
+  drop_last: True
+  total_batch_size: null # laptq 64
+  collate_fn:
+    type: BatchImageCollateFunction
+    ema_restart_decay: 0.9999
+    base_size: 640
+    base_size_repeat: 20
+    stop_epoch: null # epoch in [72, ~) stop `multiscales`    # laptq 130
+
+
+val_dataloader:
+  type: DataLoader
+  dataset:
+    type: CocoDetection
+    img_folder: /    # laptq
+    ann_file: /home/lap_awlv/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/d5.1--d5.2.json    # laptq
+    return_masks: False
+    transforms:
+      type: Compose
+      ops:
+        - {type: Resize, size: [640, 640], }
+        - {type: ConvertPILImage, dtype: 'float32', scale: True}
+  shuffle: False
+  num_workers: 32    # laptq
+  drop_last: False
+  total_batch_size: 256  # laptq 64
+  collate_fn:
+    type: BatchImageCollateFunction
+
+
+task: detection
+
+model: DFINE
+criterion: DFINECriterion
+postprocessor: DFINEPostProcessor
+
+use_focal_loss: True
+eval_spatial_size: [640, 640] # h w
+
+DFINE:
+  backbone: HGNetv2
+  encoder: HybridEncoder
+  decoder: DFINETransformer
+
+HGNetv2:
+  pretrained: True
+  local_model_dir: weight/hgnetv2/
+  name: 'B0'
+  return_idx: [1, 2, 3]
+  freeze_at: -1
+  freeze_norm: False
+  use_lab: True
+
+
+HybridEncoder:
+  feat_strides: [8, 16, 32]
+  in_channels: [256, 512, 1024]
+
+  # intra
+  hidden_dim: 256
+  use_encoder_idx: [2]
+  num_encoder_layers: 1
+  nhead: 8
+  dim_feedforward: 1024
+  dropout: 0.
+  enc_act: 'gelu'
+
+  # cross
+  expansion: 0.5
+  depth_mult: 0.34
+  act: 'silu'
+
+
+DFINETransformer:
+  feat_channels: [256, 256, 256]
+  feat_strides: [8, 16, 32]
+  hidden_dim: 256
+  num_levels: 3
+
+  num_layers: 3  # 4 5 6
+  eval_idx: -1  # -2 -3 -4  
+  num_queries: 300
+
+  num_denoising: 100
+  label_noise_ratio: 0.5
+  box_noise_scale: 1.0
+
+  # NEW
+  reg_max: 32
+  reg_scale: 4
+
+  # Auxiliary decoder layers dimension scaling
+  # "eg. If num_layers: 6 eval_idx: -4,
+  # then layer 3, 4, 5 are auxiliary decoder layers."
+  layer_scale: 1  # 2
+
+
+  num_points: [3, 6, 3] # [4, 4, 4] [3, 6, 3]
+  cross_attn_method: default # default, discrete
+  query_select_method: default # default, agnostic
+
+
+DFINEPostProcessor:
+  num_top_queries: 300
+
+
+DFINECriterion:
+  weight_dict: {loss_vfl: 1, loss_bbox: 5, loss_giou: 2, loss_fgl: 0.15, loss_ddf: 1.5}
+  losses: ['vfl', 'boxes', 'local']
+  alpha: 0.75
+  gamma: 2.0
+  reg_max: 32
+
+  matcher:
+    type: HungarianMatcher
+    weight_dict: {cost_class: 2, cost_bbox: 5, cost_giou: 2}
+    alpha: 0.25
+    gamma: 2.0
