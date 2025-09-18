@@ -1,7 +1,8 @@
-cd /home/lap_awlv/laptq-nedo-fed/submodules/D-FINE
+cd ~/laptq-prj-46/submodules/D-FINE
 
 python tools/inference/torch_inf.py \
-    -c /home/lap_awlv/laptq-nedo-fed/submodules/D-FINE/configs/dfine/dfine_hgnetv2_s--c1.yml \
-    -r /home/lap_awlv/laptq-nedo-fed/runs/data--c1/dfine_hgnetv2_s/train-B-E150-LR0.0002/last.pth \
-    --input /home/lap_awlv/laptq-nedo-fed/data/detection_people_pseudo/batch1/B8-A4-4F-D2-F8-3A/images/2025_03_18/1742296344124_30000.jpg \
-    --device cuda:0
+    -c /home/laptq/laptq-prj-46/submodules/D-FINE/configs/dfine/dfine_hgnetv2_s--prj57-v1.yml \
+    -r /home/laptq/laptq-prj-46/runs/prj57-v1/dfine_hgnetv2_s/train/best_stg2.pth \
+    --input /mnt/ssd8tb/shared_workspace/prj57/datasets/thailand/videos/IMG_0908.MOV \
+    --device cuda:1 \
+    --imgsz 960 \

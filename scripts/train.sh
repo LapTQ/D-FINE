@@ -1,9 +1,9 @@
 
-DEVICE=0
+DEVICE=3
 PORT=7780
-NAME_CFG=dfine_hgnetv2_s--20241122--phase-2--annotation-ver2.yml
+# NAME_CFG=dfine_hgnetv2_s--20241122--phase-2--annotation-ver2.yml
 
-cd /mnt/hdd10tb/Users/laptq/laptq-prj-46/submodules/D-FINE
+cd submodules/D-FINE
 # CUDA_VISIBLE_DEVICES=$DEVICE torchrun \
 #     --master_port=$PORT \
 #     --nproc_per_node=1 \
@@ -12,6 +12,6 @@ cd /mnt/hdd10tb/Users/laptq/laptq-prj-46/submodules/D-FINE
 #     --use-amp \
 #     --seed=0 \
 CUDA_VISIBLE_DEVICES=$DEVICE python3 train.py \
-    -c /mnt/hdd10tb/Users/laptq/laptq-prj-46/submodules/D-FINE/configs/dfine/$NAME_CFG \
+    -c configs/dfine/dfine_hgnetv2_m--prj57-v1.yml \
     --use-amp \
     --seed=0 \
