@@ -36,14 +36,14 @@ def draw(images, labels, boxes, scores, thrh=0.4):
         im.save("torch_results.jpg")
 
 
-def process_image(model, device, file_path):
+def process_image(model, device, file_path, imgsz):
     im_pil = Image.open(file_path).convert("RGB")
     w, h = im_pil.size
     orig_size = torch.tensor([[w, h]]).to(device)
 
     transforms = T.Compose(
         [
-            T.Resize((640, 640)),
+            T.Resize((imgsz, imgsz)),
             T.ToTensor(),
         ]
     )
@@ -55,7 +55,7 @@ def process_image(model, device, file_path):
     draw([im_pil], labels, boxes, scores)
 
 
-def process_video(model, device, file_path):
+def process_video(model, device, file_path, imgsz):
     cap = cv2.VideoCapture(file_path)
 
     # Get video properties
@@ -69,7 +69,7 @@ def process_video(model, device, file_path):
 
     transforms = T.Compose(
         [
-            T.Resize((640, 640)),
+            T.Resize((imgsz, imgsz)),
             T.ToTensor(),
         ]
     )
@@ -118,7 +118,7 @@ def main(args):
         cfg.yaml_cfg["HGNetv2"]["pretrained"] = False
 
     if args.resume:
-        checkpoint = torch.load(args.resume, map_location="cpu")
+        checkpoint = torch.load(args.resume, weights_only=True, map_location="cpu")
         if "ema" in checkpoint:
             state = checkpoint["ema"]["module"]
         else:
@@ -142,16 +142,17 @@ def main(args):
 
     device = args.device
     model = Model().to(device)
+    imgsz = args.imgsz
 
     # Check if the input file is an image or a video
     file_path = args.input
     if os.path.splitext(file_path)[-1].lower() in [".jpg", ".jpeg", ".png", ".bmp"]:
         # Process as image
-        process_image(model, device, file_path)
+        process_image(model, device, file_path, imgsz)
         print("Image processing complete.")
     else:
         # Process as video
-        process_video(model, device, file_path)
+        process_video(model, device, file_path, imgsz)
 
 
 if __name__ == "__main__":
@@ -162,5 +163,6 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--resume", type=str, required=True)
     parser.add_argument("-i", "--input", type=str, required=True)
     parser.add_argument("-d", "--device", type=str, default="cpu")
+    parser.add_argument("-s", "--imgsz", type=int, default=640)    
     args = parser.parse_args()
     main(args)

@@ -9,6 +9,8 @@ Copyright (c) 2023 lyuwenyu. All Rights Reserved.
 import datetime
 import json
 import time
+from pprint import pprint
+import numpy as np
 
 import torch
 
@@ -52,6 +54,7 @@ class DetSolver(BaseSolver):
                 self.last_epoch,
                 self.use_wandb
             )
+            pprint(get_map_per_class(coco_evaluator.coco_eval["bbox"].eval['precision']))
             for k in test_stats:
                 best_stat["epoch"] = self.last_epoch
                 best_stat[k] = test_stats[k][0]
@@ -122,6 +125,8 @@ class DetSolver(BaseSolver):
                 self.use_wandb,
                 output_dir=self.output_dir,
             )
+
+            pprint(get_map_per_class(coco_evaluator.coco_eval["bbox"].eval['precision']))
 
             # TODO
             for k in test_stats:
@@ -226,9 +231,48 @@ class DetSolver(BaseSolver):
             use_wandb=False,
         )
 
+        pprint(get_map_per_class(coco_evaluator.coco_eval["bbox"].eval['precision']))
+
         if self.output_dir:
             dist_utils.save_on_master(
                 coco_evaluator.coco_eval["bbox"].eval, self.output_dir / "eval.pth"
             )
 
         return
+
+
+def get_map_per_class(precision, class_names=None):
+    """
+    Args:
+        precision: np.ndarray, shape [iou, recall, cls, area, maxDet]
+            Output from coco_evaluator.coco_eval["bbox"].eval['precision']
+
+            iou: usually 10 thresholds, from 0.50 to 0.95 in steps of 0.05
+            recall: 101 discrete recall values, evenly spaced from 0.0 to 1.0.
+            cls: number of classes
+            area: 4 area ranges: all, small, medium, large
+            maxDet: Standard values are 1, 10, and 100. Allows AP calculation with caps on the number of detections per image (usually use index 2 for 100 detections—the default for official mAP)
+        
+        class_names: List of class names (optional), otherwise uses indices.
+
+    Returns:
+        A dict {class_name: {"mAP50": float, "mAP50_95": float}}
+    """
+    num_classes = precision.shape[2]
+    result = {}
+
+    for cls_idx in range(num_classes):
+        # mAP50: IoU=0.5, all recall
+        ap_50 = precision[0, :, cls_idx, 0, 2]   # iou=0.5, area=all, maxDet=100
+        ap_50 = ap_50[ap_50 > -1]                # COCO sets -1 for invalid
+        mAP50 = np.mean(ap_50) if len(ap_50) > 0 else float('nan')
+
+        # mAP50-95: mean over iou thresholds, all recall
+        ap_50_95 = precision[:, :, cls_idx, 0, 2]  # iou=0.5:0.95, area=all, maxDet=100
+        ap_50_95 = ap_50_95[ap_50_95 > -1]
+        mAP50_95 = np.mean(ap_50_95) if len(ap_50_95) > 0 else float('nan')
+
+        name = class_names[cls_idx] if class_names else str(cls_idx)
+        result[name] = {"mAP50": mAP50, "mAP50_95": mAP50_95}
+
+    return result
