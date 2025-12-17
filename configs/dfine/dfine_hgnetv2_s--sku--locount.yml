@@ -97,7 +97,7 @@ train_dataloader:
   shuffle: True
   num_workers: 32    # laptq
   drop_last: True
-  total_batch_size: 32 # laptq 64
+  total_batch_size: 16 # laptq 64
   collate_fn:
     type: BatchImageCollateFunction
     ema_restart_decay: 0.9999
@@ -121,7 +121,7 @@ val_dataloader:
   shuffle: False
   num_workers: 32    # laptq
   drop_last: False
-  total_batch_size: 32  # laptq 64
+  total_batch_size: 16  # laptq 64
   collate_fn:
     type: BatchImageCollateFunction
 
