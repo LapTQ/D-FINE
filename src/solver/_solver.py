@@ -141,6 +141,7 @@ class BaseSolver(object):
 
         self.device = device
         self.last_epoch = self.cfg.last_epoch
+        self.last_running_epoch = -1  # laptq: used for federated learning
 
         self.output_dir = Path(cfg.output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -154,6 +155,7 @@ class BaseSolver(object):
         if self.use_wandb:
             try:
                 import wandb
+
                 self.use_wandb = True
             except ImportError:
                 self.use_wandb = False
@@ -298,7 +300,10 @@ class BaseSolver(object):
         ):
             del pretrain_state_dict["decoder.denoising_class_embed.weight"]
 
-        head_param_names = ["decoder.enc_score_head.weight", "decoder.enc_score_head.bias"]
+        head_param_names = [
+            "decoder.enc_score_head.weight",
+            "decoder.enc_score_head.bias",
+        ]
         for i in range(8):
             head_param_names.append(f"decoder.dec_score_head.{i}.weight")
             head_param_names.append(f"decoder.dec_score_head.{i}.bias")
@@ -314,7 +319,9 @@ class BaseSolver(object):
                     pretrain_state_dict[param_name] = adjusted_tensor
                     adjusted_params.append(param_name)
                 else:
-                    print(f"Cannot adjust parameter '{param_name}' due to size mismatch.")
+                    print(
+                        f"Cannot adjust parameter '{param_name}' due to size mismatch."
+                    )
 
         return pretrain_state_dict
 
@@ -342,7 +349,7 @@ class BaseSolver(object):
         raise NotImplementedError("")
 
     def add_callback(self, event, callback):
-        if not hasattr(self, 'callbacks'):
+        if not hasattr(self, "callbacks"):
             self.callbacks = {}
         if event not in self.callbacks:
             self.callbacks[event] = []
