@@ -181,7 +181,7 @@ def evaluate(
     output_dir = kwargs.get("output_dir", None)
     num_visualization_sample_batch = kwargs.get("num_visualization_sample_batch", 1)
 
-    for i, (samples, targets) in enumerate(metric_logger.log_every(data_loader, 10, header)):
+    for i, (samples, targets) in enumerate(metric_logger.log_every(data_loader, 100, header)):
         global_step = epoch * len(data_loader) + i
 
         if global_step < num_visualization_sample_batch and output_dir is not None and dist_utils.is_main_process():

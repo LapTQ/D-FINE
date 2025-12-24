@@ -12,14 +12,13 @@
 #     --seed=0 \
 
 ls_config = [
-    "dfine_hgnetv2_s--sku",
-    "dfine_hgnetv2_s--locount",
-    "dfine_hgnetv2_s--sku--locount",
+    "dfine_hgnetv2_s--hcmc1",
+    "dfine_hgnetv2_s--hcmc2",
+    "dfine_hgnetv2_s--hcmc1--hcmc2",
 ]
-ls_device = [0, 0, 0]
+ls_device = [1, 1, 1]
 
 assert len(ls_config) == len(ls_device)
-"CUDA_VISIBLE_DEVICES=$DEVICE python3 train.py -c configs/dfine/dfine_hgnetv2_s--sku.yml --use-amp --seed=0"
 
 import subprocess
 import multiprocessing as mp
