@@ -15,7 +15,7 @@ project_name: D-FINE # for wandb
 exp_name: baseline # wandb experiment name
 
 
-output_dir: /home/lap_awlv/laptq-nedo-fed/runs/data--hcmc2/dfine_hgnetv2_s/train-B-E60-LR0.0002    # laptq
+output_dir: /home/lap_awlv/laptq-nedo-fed/runs/data--hcmc2/dfine_hgnetv2_s/train-B-E16-LR0.0002    # laptq
 
 
 optimizer:
@@ -60,7 +60,7 @@ lr_warmup_scheduler:
 
 
 # Increase to search for the optimal ema
-epochs: 60 # 120 + 4n    # laptq 150
+epochs: 16 # 120 + 4n    # laptq 150
 
 
 evaluator:
@@ -92,7 +92,7 @@ train_dataloader:
         - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}
       policy:
         name: stop_epoch
-        epoch: 30 # epoch in [71, ~) stop `ops`    # laptq 130
+        epoch: 10 # epoch in [71, ~) stop `ops`    # laptq 130
         ops: ['RandomPhotometricDistort', 'RandomZoomOut', 'RandomIoUCrop']
   shuffle: True
   num_workers: 32    # laptq
@@ -103,7 +103,7 @@ train_dataloader:
     ema_restart_decay: 0.9999
     base_size: 640    # laptq
     base_size_repeat: 20
-    stop_epoch: 30 # epoch in [72, ~) stop `multiscales`    # laptq 130
+    stop_epoch: 10 # epoch in [72, ~) stop `multiscales`    # laptq 130
 
 
 val_dataloader:

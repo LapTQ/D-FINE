@@ -15,7 +15,7 @@ project_name: D-FINE # for wandb
 exp_name: baseline # wandb experiment name
 
 
-output_dir: /home/lap_awlv/laptq-nedo-fed/runs/data--hcmc1/dfine_hgnetv2_s/train-B-E16-LR0.0002    # laptq
+output_dir: /home/lap_awlv/laptq-nedo-fed/outputs/trivials    # laptq
 
 
 optimizer:
@@ -23,16 +23,16 @@ optimizer:
   params:
     -
       params: '^(?=.*backbone)(?!.*norm|bn).*$'
-      lr: 0.0002    # laptq 0.0001
+      lr: null    # laptq 0.0001
     -
       params: '^(?=.*backbone)(?=.*norm|bn).*$'
-      lr: 0.0002    # laptq 0.0001
+      lr: null    # laptq 0.0001
       weight_decay: 0.
     -
       params: '^(?=.*(?:encoder|decoder))(?=.*(?:norm|bn|bias)).*$'
       weight_decay: 0.
 
-  lr: 0.0002    # laptq 0.0002
+  lr: null    # laptq 0.0002
   betas: [0.9, 0.999]
   weight_decay: 0.0001
 
@@ -60,7 +60,7 @@ lr_warmup_scheduler:
 
 
 # Increase to search for the optimal ema
-epochs: 16 # 120 + 4n    # laptq 150
+epochs: null # 120 + 4n    # laptq 150
 
 
 evaluator:
@@ -76,7 +76,7 @@ train_dataloader:
   dataset:
     type: CocoDetection
     img_folder: /    # laptq
-    ann_file: /home/lap_awlv/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/train_hcm_cam1.json    # laptq
+    ann_file: null    # laptq
     return_masks: False
     transforms:
       type: Compose
@@ -86,24 +86,24 @@ train_dataloader:
         - {type: RandomIoUCrop, p: 0.8}
         - {type: SanitizeBoundingBoxes, min_size: 1}
         - {type: RandomHorizontalFlip}
-        - {type: Resize, size: [640, 640], }    # laptq
+        - {type: Resize, size: [640, 640], }
         - {type: SanitizeBoundingBoxes, min_size: 1}
         - {type: ConvertPILImage, dtype: 'float32', scale: True}
         - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}
       policy:
         name: stop_epoch
-        epoch: 10 # epoch in [71, ~) stop `ops`    # laptq 130
+        epoch: null # epoch in [71, ~) stop `ops`    # laptq 130
         ops: ['RandomPhotometricDistort', 'RandomZoomOut', 'RandomIoUCrop']
   shuffle: True
   num_workers: 32    # laptq
   drop_last: True
-  total_batch_size: 32 # laptq 64
+  total_batch_size: null # laptq 64
   collate_fn:
     type: BatchImageCollateFunction
     ema_restart_decay: 0.9999
-    base_size: 640    # laptq
+    base_size: 640
     base_size_repeat: 20
-    stop_epoch: 10 # epoch in [72, ~) stop `multiscales`    # laptq 130
+    stop_epoch: null # epoch in [72, ~) stop `multiscales`    # laptq 130
 
 
 val_dataloader:
@@ -111,17 +111,17 @@ val_dataloader:
   dataset:
     type: CocoDetection
     img_folder: /    # laptq
-    ann_file: /home/lap_awlv/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/valid_hcm_cam1.json    # laptq
+    ann_file: /home/lap_awlv/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/fastlabel.json    # laptq
     return_masks: False
     transforms:
       type: Compose
       ops:
-        - {type: Resize, size: [640, 640], }    # laptq
+        - {type: Resize, size: [640, 640], }
         - {type: ConvertPILImage, dtype: 'float32', scale: True}
   shuffle: False
   num_workers: 32    # laptq
   drop_last: False
-  total_batch_size: 32  # laptq 64
+  total_batch_size: 256  # laptq 64
   collate_fn:
     type: BatchImageCollateFunction
 
@@ -133,7 +133,7 @@ criterion: DFINECriterion
 postprocessor: DFINEPostProcessor
 
 use_focal_loss: True
-eval_spatial_size: [640, 640] # h w    # laptq
+eval_spatial_size: [640, 640] # h w
 
 DFINE:
   backbone: HGNetv2

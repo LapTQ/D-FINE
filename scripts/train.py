@@ -28,7 +28,7 @@ with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
     futures = [
         executor.submit(
             subprocess.run,
-            args=f"CUDA_VISIBLE_DEVICES={device} python3 train.py -c configs/dfine/{cfg}.yml --use-amp --seed=0",
+            args=f"CUDA_VISIBLE_DEVICES={device} python3 train.py -c configs/dfine/{cfg}.yml --use-amp --seed=0 -t /home/lap_awlv/laptq-nedo-fed/dfine_s_obj365.pth",
             cwd="submodules/D-FINE",
             shell=True,
             check=True,
