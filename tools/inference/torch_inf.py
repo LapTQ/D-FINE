@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as T
 from PIL import Image, ImageDraw
+from tqdm import tqdm
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 from src.core import YAMLConfig
@@ -33,10 +34,10 @@ def draw(images, labels, boxes, scores, thrh=0.4):
                 fill="blue",
             )
 
-        im.save("torch_results.jpg")
+        # im.save("torch_results.jpg")
 
 
-def process_image(model, device, file_path, imgsz):
+def process_image(model, device, file_path, imgsz, output_dir):
     im_pil = Image.open(file_path).convert("RGB")
     w, h = im_pil.size
     orig_size = torch.tensor([[w, h]]).to(device)
@@ -53,6 +54,8 @@ def process_image(model, device, file_path, imgsz):
     labels, boxes, scores = output
 
     draw([im_pil], labels, boxes, scores)
+
+    im_pil.save(os.path.join(output_dir, os.path.split(file_path)[-1]))
 
 
 def process_video(model, device, file_path, imgsz):
@@ -144,11 +147,17 @@ def main(args):
     model = Model().to(device)
     imgsz = args.imgsz
 
+    os.makedirs(args.output_dir, exist_ok=True)
+
     # Check if the input file is an image or a video
     file_path = args.input
-    if os.path.splitext(file_path)[-1].lower() in [".jpg", ".jpeg", ".png", ".bmp"]:
+    if os.path.isdir(file_path):
+        for file in tqdm(os.listdir(file_path)):
+            if os.path.splitext(file)[-1].lower() in [".jpg", ".jpeg", ".png", ".bmp"]:
+                process_image(model, device, os.path.join(file_path, file), imgsz, args.output_dir)
+    elif os.path.splitext(file_path)[-1].lower() in [".jpg", ".jpeg", ".png", ".bmp"]:
         # Process as image
-        process_image(model, device, file_path, imgsz)
+        process_image(model, device, file_path, imgsz, args.output_dir)
         print("Image processing complete.")
     else:
         # Process as video
@@ -163,6 +172,7 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--resume", type=str, required=True)
     parser.add_argument("-i", "--input", type=str, required=True)
     parser.add_argument("-d", "--device", type=str, default="cpu")
-    parser.add_argument("-s", "--imgsz", type=int, default=640)    
+    parser.add_argument("-s", "--imgsz", type=int, default=640) 
+    parser.add_argument("--output_dir", type=str)   
     args = parser.parse_args()
     main(args)
