@@ -15,7 +15,7 @@ project_name: D-FINE # for wandb
 exp_name: baseline # wandb experiment name
 
 
-output_dir: /home/pocuser2/laptq-nedo-fed/runs/data--lagenda/dfine_hgnetv2_s/train-B-E16-LR0.0002    # laptq
+output_dir: /home/pocuser2/laptq-nedo-fed/runs/data--virat/dfine_hgnetv2_s/train-B-E16-LR0.0002    # laptq
 
 
 optimizer:
@@ -76,7 +76,7 @@ train_dataloader:
   dataset:
     type: CocoDetection
     img_folder: /    # laptq
-    ann_file: /home/pocuser2/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/lagenda_train.json    # laptq
+    ann_file: /home/pocuser2/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/virat_train.json    # laptq
     return_masks: False
     transforms:
       type: Compose
@@ -111,7 +111,7 @@ val_dataloader:
   dataset:
     type: CocoDetection
     img_folder: /    # laptq
-    ann_file: /home/pocuser2/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/lagenda_val.json    # laptq
+    ann_file: /home/pocuser2/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/virat_val.json    # laptq
     return_masks: False
     transforms:
       type: Compose

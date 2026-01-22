@@ -15,7 +15,7 @@ project_name: D-FINE # for wandb
 exp_name: baseline # wandb experiment name
 
 
-output_dir: /home/pocuser2/laptq-nedo-fed/runs/data--lagenda/dfine_hgnetv2_s/train-B-E16-LR0.0002    # laptq
+output_dir: /home/pocuser2/laptq-nedo-fed/outputs/trivials    # laptq
 
 
 optimizer:
@@ -60,7 +60,7 @@ lr_warmup_scheduler:
 
 
 # Increase to search for the optimal ema
-epochs: 16 # 120 + 4n    # laptq 150
+epochs: 80 # 120 + 4n    # laptq 150
 
 
 evaluator:
@@ -76,7 +76,7 @@ train_dataloader:
   dataset:
     type: CocoDetection
     img_folder: /    # laptq
-    ann_file: /home/pocuser2/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/lagenda_train.json    # laptq
+    ann_file: null    # laptq
     return_masks: False
     transforms:
       type: Compose
@@ -92,7 +92,7 @@ train_dataloader:
         - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}
       policy:
         name: stop_epoch
-        epoch: 10 # epoch in [71, ~) stop `ops`    # laptq 130
+        epoch: 60 # epoch in [71, ~) stop `ops`    # laptq 130
         ops: ['RandomPhotometricDistort', 'RandomZoomOut', 'RandomIoUCrop']
   shuffle: True
   num_workers: 32    # laptq
@@ -103,7 +103,7 @@ train_dataloader:
     ema_restart_decay: 0.9999
     base_size: 640    # laptq
     base_size_repeat: 20
-    stop_epoch: 10 # epoch in [72, ~) stop `multiscales`    # laptq 130
+    stop_epoch: 60 # epoch in [72, ~) stop `multiscales`    # laptq 130
 
 
 val_dataloader:
@@ -111,7 +111,7 @@ val_dataloader:
   dataset:
     type: CocoDetection
     img_folder: /    # laptq
-    ann_file: /home/pocuser2/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/lagenda_val.json    # laptq
+    ann_file: /home/pocuser2/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/Objects365_val.json    # laptq
     return_masks: False
     transforms:
       type: Compose
@@ -121,7 +121,7 @@ val_dataloader:
   shuffle: False
   num_workers: 32    # laptq
   drop_last: False
-  total_batch_size: 32  # laptq 64
+  total_batch_size: 128  # laptq 64
   collate_fn:
     type: BatchImageCollateFunction
 

@@ -12,11 +12,11 @@
 #     --seed=0 \
 
 ls_config = [
-    "dfine_hgnetv2_s--hcmc1",
-    "dfine_hgnetv2_s--hcmc2",
-    "dfine_hgnetv2_s--hcmc1--hcmc2",
+    "dfine_hgnetv2_s--lagenda",
+    "dfine_hgnetv2_s--virat",
+    "dfine_hgnetv2_s--lagenda--virat",
 ]
-ls_device = [1, 1, 1]
+ls_device = [0, 0, 0]
 
 assert len(ls_config) == len(ls_device)
 
@@ -28,7 +28,7 @@ with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
     futures = [
         executor.submit(
             subprocess.run,
-            args=f"CUDA_VISIBLE_DEVICES={device} python3 train.py -c configs/dfine/{cfg}.yml --use-amp --seed=0 -t /home/lap_awlv/laptq-nedo-fed/dfine_s_obj365.pth",
+            args=f"CUDA_VISIBLE_DEVICES={device} python3 train.py -c configs/dfine/{cfg}.yml --use-amp --seed=0 -t /home/pocuser2/laptq-nedo-fed/dfine_s_obj365.pth",
             cwd="submodules/D-FINE",
             shell=True,
             check=True,

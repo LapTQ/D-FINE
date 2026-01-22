@@ -55,9 +55,11 @@ def plot_metrics(log_files_with_names, output_dir):
 
 # Example usage
 log_files = [
-    ("/home/pocuser2/laptq-nedo-fed/runs/data--sku/dfine_hgnetv2_s/train-B-E60-LR0.0002/log.txt", "sku"),
-    ("/home/pocuser2/laptq-nedo-fed/runs/data--locount/dfine_hgnetv2_s/train-B-E60-LR0.0002/log.txt", "locount"),
-    ("/home/pocuser2/laptq-nedo-fed/runs/data--sku--locount/dfine_hgnetv2_s/train-B-E80-LR0.0002/log.txt", "sku-locount")
+    ("/home/pocuser2/laptq-nedo-fed/runs/data--coco2017/dfine_hgnetv2_s/train-B-E80-LR0.0002/log.txt", "B-coco"),
+    ("/home/pocuser2/laptq-nedo-fed/runs/data--lagenda/dfine_hgnetv2_s/train-B-E80-LR0.0002/log.txt", "B-lagenda"),
+    ("/home/pocuser2/laptq-nedo-fed/runs/data--coco2017--lagenda/dfine_hgnetv2_s/train-B-E80-LR0.0002/log.txt", "C"),
+    ("/home/pocuser2/laptq-nedo-fed/runs/data--coco2017/dfine_hgnetv2_s/fedavg--coco2017--lagenda--80x1--LR0.0002/log.txt", "G-coco"),
+    ("/home/pocuser2/laptq-nedo-fed/runs/data--lagenda/dfine_hgnetv2_s/fedavg--coco2017--lagenda--80x1--LR0.0002/log.txt", "G-lagenda"),
 ]
 output_dir = "outputs/plot-curve-dfine"
 plot_metrics(log_files, output_dir)
