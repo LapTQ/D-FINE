@@ -130,7 +130,7 @@ task: detection
 
 model: DFINE
 criterion: DFINECriterion
-postprocessor: DFINEPostProcessor
+postprocessor: DFINEPostProcessor  # laptq CustomPostProcessor
 
 use_focal_loss: True
 eval_spatial_size: [640, 640] # h w    # laptq
@@ -201,6 +201,9 @@ DFINETransformer:
 DFINEPostProcessor:
   num_top_queries: 300
 
+CustomPostProcessor:
+  iou_mode: iou   # laptq iou miniou
+  iou_threshold: 0.5
 
 DFINECriterion:
   weight_dict: {loss_vfl: 1, loss_bbox: 5, loss_giou: 2, loss_fgl: 0.15, loss_ddf: 1.5}

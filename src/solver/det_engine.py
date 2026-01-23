@@ -22,6 +22,8 @@ from ..misc import MetricLogger, SmoothedValue, dist_utils, save_samples
 from ..optim import ModelEMA, Warmup
 from .validator import Validator, scale_boxes
 
+from pprint import pprint
+
 
 def train_one_epoch(
     model: torch.nn.Module,
@@ -230,8 +232,8 @@ def evaluate(
             )
 
     # Conf matrix, F1, Precision, Recall, box IoU
-    metrics = Validator(gt, preds).compute_metrics()
-    print("Metrics:", metrics)
+    metrics = Validator(gt, preds).compute_metrics(extended=True)
+    pprint(metrics)
     if use_wandb:
         metrics = {f"metrics/{k}": v for k, v in metrics.items()}
         metrics["epoch"] = epoch
