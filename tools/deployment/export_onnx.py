@@ -27,7 +27,7 @@ def main(
         cfg.yaml_cfg["HGNetv2"]["pretrained"] = False
 
     if args.resume:
-        checkpoint = torch.load(args.resume, map_location="cpu")
+        checkpoint = torch.load(args.resume, map_location="cpu", weights_only=True)
         if "ema" in checkpoint:
             state = checkpoint["ema"]["module"]
         else:
@@ -55,8 +55,10 @@ def main(
 
     model = Model()
 
-    data = torch.rand(32, 3, 640, 640)
-    size = torch.tensor([[640, 640]])
+    imgsz = args.imgsz
+    batch_size = args.batch_size
+    data = torch.rand(batch_size, 3, imgsz, imgsz)
+    size = torch.tensor([[imgsz, imgsz]])
     _ = model(data, size)
 
     dynamic_axes = {
@@ -124,5 +126,7 @@ if __name__ == "__main__":
         action="store_true",
         default=True,
     )
+    parser.add_argument("--imgsz", type=int, required=True)  
+    parser.add_argument("--batch_size", type=int, required=True)   
     args = parser.parse_args()
     main(args)

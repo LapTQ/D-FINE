@@ -17,46 +17,28 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from src.core import YAMLConfig
 
 
-def draw(images, labels, boxes, scores, thrh=0.4):
-    for i, im in enumerate(images):
-        draw = ImageDraw.Draw(im)
+import cv2
+COLORS = np.random.randint(0, 256, size=(32, 3))
+def render_tracks_1(img, track_results):
+    for track in track_results:
+        track_id = int(track.track_id)
+        x1_p,y1_p,x2_p,y2_p, score, _ = track.box
+        color = COLORS[track_id % len(COLORS)].tolist()
+        cv2.rectangle(img, (int(x1_p), int(y1_p)), (int(x2_p), int(y2_p)), color, thickness=2)
+        cv2.putText(img=img, text=f'Pot {track_id}', org=(int(x1_p+3), int(y1_p-5)), thickness=2, color=color, 
+            fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7)
 
-        scr = scores[i]
-        lab = labels[i][scr > thrh]
-        box = boxes[i][scr > thrh]
-        scrs = scr[scr > thrh]
+def render_tracks_2(img, track_results):
+    for track in track_results:
+        track_id = int(track.track_id)
+        x1_p,y1_p,x2_p,y2_p, score, _ = track.box
+        color = COLORS[track_id % len(COLORS)].tolist()
+        cv2.rectangle(img, (int(x1_p), int(y1_p)), (int(x2_p), int(y2_p)), color, thickness=2)
+        cv2.putText(img=img, text=f'Man {track_id}', org=(int(x1_p+3), int(y1_p-5)), thickness=2, color=color, 
+            fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7)
 
-        for j, b in enumerate(box):
-            draw.rectangle(list(b), outline="red")
-            draw.text(
-                (b[0], b[1]),
-                text=f"{lab[j].item()} {round(scrs[j].item(), 2)}",
-                fill="blue",
-            )
-
-        # im.save("torch_results.jpg")
-
-
-def process_image(model, device, file_path, imgsz, output_dir):
-    im_pil = Image.open(file_path).convert("RGB")
-    w, h = im_pil.size
-    orig_size = torch.tensor([[w, h]]).to(device)
-
-    transforms = T.Compose(
-        [
-            T.Resize((imgsz, imgsz)),
-            T.ToTensor(),
-        ]
-    )
-    im_data = transforms(im_pil).unsqueeze(0).to(device)
-
-    output = model(im_data, orig_size)
-    labels, boxes, scores = output
-
-    draw([im_pil], labels, boxes, scores)
-
-    im_pil.save(os.path.join(output_dir, os.path.split(file_path)[-1]))
-
+from sort import Sort
+from detection_info import DetectionInfo
 
 def process_video(model, device, file_path, imgsz, output_dir):
     cap = cv2.VideoCapture(file_path)
@@ -77,6 +59,23 @@ def process_video(model, device, file_path, imgsz, output_dir):
         ]
     )
 
+    tracker_1 = Sort(
+        {
+            "max_age": 15,
+            "min_hits": 2,
+            "iou_threshold": 0.2,
+            "overlap_threshold": 0.4,
+        }
+    )
+    tracker_2 = Sort(
+        {
+            "max_age": 15,
+            "min_hits": 2,
+            "iou_threshold": 0.2,
+            "overlap_threshold": 0.4,
+        }
+    )
+
     frame_count = 0
     print("Processing video frames...")
     while cap.isOpened():
@@ -95,11 +94,19 @@ def process_video(model, device, file_path, imgsz, output_dir):
         output = model(im_data, orig_size)
         labels, boxes, scores = output
 
-        # Draw detections on the frame
-        draw([frame_pil], labels, boxes, scores)
+        boxes = boxes[scores >= 0.4]
+        labels = labels[scores >= 0.4]
+        scores = scores[scores >= 0.4]
 
-        # Convert back to OpenCV image
-        frame = cv2.cvtColor(np.array(frame_pil), cv2.COLOR_RGB2BGR)
+        alive_tracks_1, dead_tracks_1 = tracker_1.update([DetectionInfo(person_box=box.tolist() + [scr, cls_]) for box, scr, cls_ in zip(boxes[labels==0].detach().cpu().numpy(), scores[labels==0].detach().cpu().numpy(), labels[labels==0].detach().cpu().numpy())], frame)
+        alive_tracks_2, dead_tracks_2 = tracker_2.update([DetectionInfo(person_box=box.tolist() + [scr, cls_]) for box, scr, cls_ in zip(boxes[labels==1].detach().cpu().numpy(), scores[labels==1].detach().cpu().numpy(), labels[labels==1].detach().cpu().numpy())], frame)
+
+        print(boxes.shape, len(alive_tracks_1), len(alive_tracks_2))
+
+        render_tracks_1(frame, alive_tracks_1)
+        render_tracks_2(frame, alive_tracks_2)
+
+        cv2.imwrite(os.path.join(output_dir, os.path.splitext(os.path.basename(file_path))[0] + '.jpg'), frame)
 
         # Write the frame
         out.write(frame)
@@ -146,22 +153,13 @@ def main(args):
     device = args.device
     model = Model().to(device)
     imgsz = args.imgsz
+    output_dir = args.output_dir
 
-    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     # Check if the input file is an image or a video
     file_path = args.input
-    if os.path.isdir(file_path):
-        for file in tqdm(os.listdir(file_path)):
-            if os.path.splitext(file)[-1].lower() in [".jpg", ".jpeg", ".png", ".bmp"]:
-                process_image(model, device, os.path.join(file_path, file), imgsz, args.output_dir)
-    elif os.path.splitext(file_path)[-1].lower() in [".jpg", ".jpeg", ".png", ".bmp"]:
-        # Process as image
-        process_image(model, device, file_path, imgsz, args.output_dir)
-        print("Image processing complete.")
-    else:
-        # Process as video
-        process_video(model, device, file_path, imgsz, output_dir)
+    process_video(model, device, file_path, imgsz, output_dir)
 
 
 if __name__ == "__main__":
@@ -172,7 +170,7 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--resume", type=str, required=True)
     parser.add_argument("-i", "--input", type=str, required=True)
     parser.add_argument("-d", "--device", type=str, default="cpu")
-    parser.add_argument("-s", "--imgsz", type=int, default=640) 
-    parser.add_argument("--output_dir", type=str)   
+    parser.add_argument("-s", "--imgsz", type=int, default=640)   
+    parser.add_argument("--output_dir", type=str)    
     args = parser.parse_args()
     main(args)
