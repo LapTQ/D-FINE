@@ -15,7 +15,7 @@ project_name: D-FINE # for wandb
 exp_name: baseline # wandb experiment name
 
 
-output_dir: null    # laptq
+output_dir: /home/pocuser2/laptq-nedo-fed/runs/data--virat/dfine_hgnetv2_s/train-B-E16-LR0.0002    # laptq
 
 
 optimizer:
@@ -23,16 +23,16 @@ optimizer:
   params:
     -
       params: '^(?=.*backbone)(?!.*norm|bn).*$'
-      lr: null    # laptq 0.0001
+      lr: 0.0002    # laptq 0.0001
     -
       params: '^(?=.*backbone)(?=.*norm|bn).*$'
-      lr: null    # laptq 0.0001
+      lr: 0.0002    # laptq 0.0001
       weight_decay: 0.
     -
       params: '^(?=.*(?:encoder|decoder))(?=.*(?:norm|bn|bias)).*$'
       weight_decay: 0.
 
-  lr: null    # laptq 0.0002
+  lr: 0.0002    # laptq 0.0002
   betas: [0.9, 0.999]
   weight_decay: 0.0001
 
@@ -60,14 +60,14 @@ lr_warmup_scheduler:
 
 
 # Increase to search for the optimal ema
-epochs: null # 120 + 4n    # laptq 150
+epochs: 16 # 120 + 4n    # laptq 150
 
 
 evaluator:
   type: CocoEvaluator
   iou_types: ['bbox', ]
 
-num_classes: null     # laptq
+num_classes: 1     # laptq
 remap_mscoco_category: False
 
 
@@ -76,7 +76,7 @@ train_dataloader:
   dataset:
     type: CocoDetection
     img_folder: /    # laptq
-    ann_file: null    # laptq
+    ann_file: /home/pocuser2/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/virat_train.json    # laptq
     return_masks: False
     transforms:
       type: Compose
@@ -92,18 +92,18 @@ train_dataloader:
         - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}
       policy:
         name: stop_epoch
-        epoch: null # epoch in [71, ~) stop `ops`    # laptq 130
+        epoch: 10 # epoch in [71, ~) stop `ops`    # laptq 130
         ops: ['RandomPhotometricDistort', 'RandomZoomOut', 'RandomIoUCrop']
   shuffle: True
   num_workers: 32    # laptq
   drop_last: True
-  total_batch_size: null # laptq 64
+  total_batch_size: 32 # laptq 64
   collate_fn:
     type: BatchImageCollateFunction
     ema_restart_decay: 0.9999
     base_size: 640    # laptq
     base_size_repeat: 20
-    stop_epoch: null # epoch in [72, ~) stop `multiscales`    # laptq 130
+    stop_epoch: 10 # epoch in [72, ~) stop `multiscales`    # laptq 130
 
 
 val_dataloader:
@@ -111,7 +111,7 @@ val_dataloader:
   dataset:
     type: CocoDetection
     img_folder: /    # laptq
-    ann_file: null    # laptq
+    ann_file: /home/pocuser2/laptq-nedo-fed/outputs/helper--convert--ultralytics-txt--to--coco/virat_val.json    # laptq
     return_masks: False
     transforms:
       type: Compose
@@ -121,7 +121,7 @@ val_dataloader:
   shuffle: False
   num_workers: 32    # laptq
   drop_last: False
-  total_batch_size: null  # laptq 64
+  total_batch_size: 32  # laptq 64
   collate_fn:
     type: BatchImageCollateFunction
 
@@ -143,7 +143,7 @@ DFINE:
 HGNetv2:
   pretrained: True
   local_model_dir: weight/hgnetv2/
-  name: 'B2'
+  name: 'B0'
   return_idx: [1, 2, 3]
   freeze_at: -1
   freeze_norm: False
@@ -152,7 +152,7 @@ HGNetv2:
 
 HybridEncoder:
   feat_strides: [8, 16, 32]
-  in_channels: [384, 768, 1536]
+  in_channels: [256, 512, 1024]
 
   # intra
   hidden_dim: 256
@@ -165,7 +165,7 @@ HybridEncoder:
 
   # cross
   expansion: 0.5
-  depth_mult: 0.67
+  depth_mult: 0.34
   act: 'silu'
 
 
@@ -175,7 +175,7 @@ DFINETransformer:
   hidden_dim: 256
   num_levels: 3
 
-  num_layers: 4  # 4 5 6
+  num_layers: 3  # 4 5 6
   eval_idx: -1  # -2 -3 -4  
   num_queries: 300
 

@@ -52,9 +52,11 @@ class DetSolver(BaseSolver):
                 self.evaluator,
                 self.device,
                 self.last_epoch,
-                self.use_wandb
+                self.use_wandb,
             )
-            pprint(get_map_per_class(coco_evaluator.coco_eval["bbox"].eval['precision']))
+            pprint(
+                get_map_per_class(coco_evaluator.coco_eval["bbox"].eval["precision"])
+            )
             for k in test_stats:
                 best_stat["epoch"] = self.last_epoch
                 best_stat[k] = test_stats[k][0]
@@ -98,6 +100,7 @@ class DetSolver(BaseSolver):
                 self.lr_scheduler.step()
 
             self.last_epoch += 1
+            self.last_running_epoch += 1
 
             # laptq
             if hasattr(self, "callbacks"):
@@ -109,7 +112,9 @@ class DetSolver(BaseSolver):
                 checkpoint_paths = [self.output_dir / "last.pth"]
                 # extra checkpoint before LR drop and every 100 epochs
                 if (epoch + 1) % args.checkpoint_freq == 0:
-                    checkpoint_paths.append(self.output_dir / f"checkpoint{epoch:04}.pth")
+                    checkpoint_paths.append(
+                        self.output_dir / f"checkpoint{epoch:04}.pth"
+                    )
                 for checkpoint_path in checkpoint_paths:
                     dist_utils.save_on_master(self.state_dict(), checkpoint_path)
 
@@ -126,7 +131,9 @@ class DetSolver(BaseSolver):
                 output_dir=self.output_dir,
             )
 
-            pprint(get_map_per_class(coco_evaluator.coco_eval["bbox"].eval['precision']))
+            pprint(
+                get_map_per_class(coco_evaluator.coco_eval["bbox"].eval["precision"])
+            )
 
             # TODO
             for k in test_stats:
@@ -179,7 +186,9 @@ class DetSolver(BaseSolver):
                     if self.ema:
                         self.ema.decay -= 0.0001
                         self.load_resume_state(str(self.output_dir / "best_stg1.pth"))
-                        print(f"Refresh EMA at epoch {epoch} with decay {self.ema.decay}")
+                        print(
+                            f"Refresh EMA at epoch {epoch} with decay {self.ema.decay}"
+                        )
 
             log_stats = {
                 **{f"train_{k}": v for k, v in train_stats.items()},
@@ -191,7 +200,9 @@ class DetSolver(BaseSolver):
             if self.use_wandb:
                 wandb_logs = {}
                 for idx, metric_name in enumerate(metric_names):
-                    wandb_logs[f"metrics/{metric_name}"] = test_stats["coco_eval_bbox"][idx]
+                    wandb_logs[f"metrics/{metric_name}"] = test_stats["coco_eval_bbox"][
+                        idx
+                    ]
                 wandb_logs["epoch"] = epoch
                 wandb.log(wandb_logs)
 
@@ -231,7 +242,7 @@ class DetSolver(BaseSolver):
             use_wandb=False,
         )
 
-        pprint(get_map_per_class(coco_evaluator.coco_eval["bbox"].eval['precision']))
+        pprint(get_map_per_class(coco_evaluator.coco_eval["bbox"].eval["precision"]))
 
         if self.output_dir:
             dist_utils.save_on_master(
@@ -252,7 +263,7 @@ def get_map_per_class(precision, class_names=None):
             cls: number of classes
             area: 4 area ranges: all, small, medium, large
             maxDet: Standard values are 1, 10, and 100. Allows AP calculation with caps on the number of detections per image (usually use index 2 for 100 detections—the default for official mAP)
-        
+
         class_names: List of class names (optional), otherwise uses indices.
 
     Returns:
@@ -263,14 +274,14 @@ def get_map_per_class(precision, class_names=None):
 
     for cls_idx in range(num_classes):
         # mAP50: IoU=0.5, all recall
-        ap_50 = precision[0, :, cls_idx, 0, 2]   # iou=0.5, area=all, maxDet=100
-        ap_50 = ap_50[ap_50 > -1]                # COCO sets -1 for invalid
-        mAP50 = np.mean(ap_50) if len(ap_50) > 0 else float('nan')
+        ap_50 = precision[0, :, cls_idx, 0, 2]  # iou=0.5, area=all, maxDet=100
+        ap_50 = ap_50[ap_50 > -1]  # COCO sets -1 for invalid
+        mAP50 = np.mean(ap_50) if len(ap_50) > 0 else float("nan")
 
         # mAP50-95: mean over iou thresholds, all recall
         ap_50_95 = precision[:, :, cls_idx, 0, 2]  # iou=0.5:0.95, area=all, maxDet=100
         ap_50_95 = ap_50_95[ap_50_95 > -1]
-        mAP50_95 = np.mean(ap_50_95) if len(ap_50_95) > 0 else float('nan')
+        mAP50_95 = np.mean(ap_50_95) if len(ap_50_95) > 0 else float("nan")
 
         name = class_names[cls_idx] if class_names else str(cls_idx)
         result[name] = {"mAP50": mAP50, "mAP50_95": mAP50_95}

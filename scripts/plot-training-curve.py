@@ -55,7 +55,11 @@ def plot_metrics(log_files_with_names, output_dir):
 
 # Example usage
 log_files = [
-    ("/home/laptq/laptq-prj-46/runs/prj57-v1/dfine_hgnetv2_s/train/log.txt", "D-FINEs 960"),
+    ("/home/pocuser2/laptq-nedo-fed/runs/data--coco2017/dfine_hgnetv2_s/train-B-E80-LR0.0002/log.txt", "B-coco"),
+    ("/home/pocuser2/laptq-nedo-fed/runs/data--lagenda/dfine_hgnetv2_s/train-B-E80-LR0.0002/log.txt", "B-lagenda"),
+    ("/home/pocuser2/laptq-nedo-fed/runs/data--coco2017--lagenda/dfine_hgnetv2_s/train-B-E80-LR0.0002/log.txt", "C"),
+    ("/home/pocuser2/laptq-nedo-fed/runs/data--coco2017/dfine_hgnetv2_s/fedavg--coco2017--lagenda--80x1--LR0.0002/log.txt", "G-coco"),
+    ("/home/pocuser2/laptq-nedo-fed/runs/data--lagenda/dfine_hgnetv2_s/fedavg--coco2017--lagenda--80x1--LR0.0002/log.txt", "G-lagenda"),
 ]
-output_dir = "/home/laptq/laptq-prj-46/outputs/plot-curve-dfine"
+output_dir = "outputs/plot-curve-dfine"
 plot_metrics(log_files, output_dir)
