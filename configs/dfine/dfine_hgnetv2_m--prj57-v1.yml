@@ -203,7 +203,7 @@ DFINEPostProcessor:
   num_top_queries: 300
 
 CustomPostProcessor:
-  iou_mode: iou   # laptq iou miniou
+  iou_mode: miniou   # laptq iou miniou
   iou_threshold: 0.5
 
 DFINECriterion:

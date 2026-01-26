@@ -247,7 +247,7 @@ def nms(boxes: Union[List, np.ndarray],
 
 @register()
 class CustomPostProcessor(nn.Module):
-    __share__ = ["iou_mode", "iou_threshold", "num_classes", "use_focal_loss", "num_top_queries", "remap_mscoco_category"]
+    __share__ = ["num_classes", "use_focal_loss", "num_top_queries", "remap_mscoco_category"]
 
     def __init__(
         self, iou_mode, iou_threshold, num_classes=80, use_focal_loss=True, num_top_queries=300, remap_mscoco_category=False

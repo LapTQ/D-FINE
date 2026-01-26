@@ -18,39 +18,64 @@ from src.core import YAMLConfig
 
 
 import cv2
-COLORS = np.random.randint(0, 256, size=(32, 3))
-def render_tracks_1(img, track_results):
-    for track in track_results:
-        track_id = int(track.track_id)
-        x1_p,y1_p,x2_p,y2_p, score, _ = track.box
-        color = COLORS[track_id % len(COLORS)].tolist()
-        cv2.rectangle(img, (int(x1_p), int(y1_p)), (int(x2_p), int(y2_p)), color, thickness=2)
-        cv2.putText(img=img, text=f'Pot {track_id}', org=(int(x1_p+3), int(y1_p-5)), thickness=2, color=color, 
-            fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7)
 
-def render_tracks_2(img, track_results):
+COLORS = np.random.randint(0, 256, size=(32, 3), dtype=np.int32)
+
+
+def render_tracks(img, track_results, id_class, map_id_to_name):
     for track in track_results:
         track_id = int(track.track_id)
-        x1_p,y1_p,x2_p,y2_p, score, _ = track.box
-        color = COLORS[track_id % len(COLORS)].tolist()
-        cv2.rectangle(img, (int(x1_p), int(y1_p)), (int(x2_p), int(y2_p)), color, thickness=2)
-        cv2.putText(img=img, text=f'Man {track_id}', org=(int(x1_p+3), int(y1_p-5)), thickness=2, color=color, 
-            fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.7)
+        x1_p, y1_p, x2_p, y2_p, score, _ = track.box
+        color = tuple(COLORS[track_id % len(COLORS)].tolist())
+        cv2.rectangle(
+            img, (int(x1_p), int(y1_p)), (int(x2_p), int(y2_p)), color, thickness=2
+        )
+        cv2.putText(
+            img=img,
+            text=f"{map_id_to_name[id_class]} {track_id} {score:.2f}",
+            org=(int(x1_p + 3), int(y1_p - 5)),
+            thickness=2,
+            color=color,
+            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+            fontScale=0.7,
+        )
+
 
 from sort import Sort
 from detection_info import DetectionInfo
 
-def process_video(model, device, file_path, imgsz, output_dir):
+
+# LapTQ: TODO depends on videos
+def preprocess_frame(frame):
+    frame = np.ascontiguousarray(frame[::-1])   # flip vertically
+    return frame
+
+
+def process_video(
+    model,
+    device,
+    file_path,
+    imgsz,
+    num_classes,
+    conf_thresh,
+    map_id_to_name,
+    output_path,
+):
     cap = cv2.VideoCapture(file_path)
 
     # Get video properties
-    fps = cap.get(cv2.CAP_PROP_FPS)
+    fps = min(cap.get(cv2.CAP_PROP_FPS), 30.0)
     orig_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     orig_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     # Define the codec and create VideoWriter object
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter(os.path.join(output_dir, os.path.basename(file_path)), fourcc, fps, (orig_w, orig_h))
+    out = cv2.VideoWriter(
+        output_path,
+        fourcc,
+        fps,
+        (orig_w, orig_h),
+    )
 
     transforms = T.Compose(
         [
@@ -59,29 +84,24 @@ def process_video(model, device, file_path, imgsz, output_dir):
         ]
     )
 
-    tracker_1 = Sort(
-        {
-            "max_age": 15,
-            "min_hits": 2,
-            "iou_threshold": 0.2,
-            "overlap_threshold": 0.4,
-        }
-    )
-    tracker_2 = Sort(
-        {
-            "max_age": 15,
-            "min_hits": 2,
-            "iou_threshold": 0.2,
-            "overlap_threshold": 0.4,
-        }
-    )
-
-    frame_count = 0
-    print("Processing video frames...")
-    while cap.isOpened():
+    ls_trackers = {
+        id_class: Sort(
+            {
+                "max_age": 15,
+                "min_hits": 0,
+                "iou_threshold": 0.2,
+                "overlap_threshold": 0.4,
+            }
+        )
+        for id_class in range(num_classes)
+    }
+    print(f"Processing {file_path}")
+    for frame_count in tqdm(range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))):
         ret, frame = cap.read()
         if not ret:
             break
+
+        frame = preprocess_frame(frame)
 
         # Convert frame to PIL image
         frame_pil = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
@@ -94,30 +114,38 @@ def process_video(model, device, file_path, imgsz, output_dir):
         output = model(im_data, orig_size)
         labels, boxes, scores = output
 
-        boxes = boxes[scores >= 0.4]
-        labels = labels[scores >= 0.4]
-        scores = scores[scores >= 0.4]
+        boxes = boxes[scores >= conf_thresh]
+        labels = labels[scores >= conf_thresh]
+        scores = scores[scores >= conf_thresh]
 
-        alive_tracks_1, dead_tracks_1 = tracker_1.update([DetectionInfo(person_box=box.tolist() + [scr, cls_]) for box, scr, cls_ in zip(boxes[labels==0].detach().cpu().numpy(), scores[labels==0].detach().cpu().numpy(), labels[labels==0].detach().cpu().numpy())], frame)
-        alive_tracks_2, dead_tracks_2 = tracker_2.update([DetectionInfo(person_box=box.tolist() + [scr, cls_]) for box, scr, cls_ in zip(boxes[labels==1].detach().cpu().numpy(), scores[labels==1].detach().cpu().numpy(), labels[labels==1].detach().cpu().numpy())], frame)
+        for id_class in range(num_classes):
+            alive_tracks, dead_tracks = ls_trackers[id_class].update(
+                [
+                    DetectionInfo(person_box=box.tolist() + [scr, cls_])
+                    for box, scr, cls_ in zip(
+                        boxes[labels == id_class].detach().cpu().numpy(),
+                        scores[labels == id_class].detach().cpu().numpy(),
+                        labels[labels == id_class].detach().cpu().numpy(),
+                    )
+                ],
+                frame,
+            )
+            # print(boxes.shape, len(alive_tracks))
+            render_tracks(frame, alive_tracks, id_class, map_id_to_name)
 
-        print(boxes.shape, len(alive_tracks_1), len(alive_tracks_2))
-
-        render_tracks_1(frame, alive_tracks_1)
-        render_tracks_2(frame, alive_tracks_2)
-
-        cv2.imwrite(os.path.join(output_dir, os.path.splitext(os.path.basename(file_path))[0] + '.jpg'), frame)
+        cv2.imwrite(
+            os.path.join(
+                os.path.dirname(output_path) + "/image.jpg",
+            ),
+            frame,
+        )
 
         # Write the frame
         out.write(frame)
-        frame_count += 1
-
-        if frame_count % 10 == 0:
-            print(f"Processed {frame_count} frames...")
 
     cap.release()
     out.release()
-    print("Video processing complete. Result saved as 'results_video.mp4'.")
+    print(f"Video processing complete. Result saved as {output_path}")
 
 
 def main(args):
@@ -153,13 +181,25 @@ def main(args):
     device = args.device
     model = Model().to(device)
     imgsz = args.imgsz
-    output_dir = args.output_dir
+    num_classes = cfg.yaml_cfg["num_classes"]
+    output_path = args.output_path
+    conf_thresh = args.conf_thresh
+    map_id_to_name = eval(args.map_id_to_name)
 
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     # Check if the input file is an image or a video
     file_path = args.input
-    process_video(model, device, file_path, imgsz, output_dir)
+    process_video(
+        model,
+        device,
+        file_path,
+        imgsz,
+        num_classes,
+        conf_thresh,
+        map_id_to_name,
+        output_path,
+    )
 
 
 if __name__ == "__main__":
@@ -170,7 +210,9 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--resume", type=str, required=True)
     parser.add_argument("-i", "--input", type=str, required=True)
     parser.add_argument("-d", "--device", type=str, default="cpu")
-    parser.add_argument("-s", "--imgsz", type=int, default=640)   
-    parser.add_argument("--output_dir", type=str)    
+    parser.add_argument("-s", "--imgsz", type=int, default=640)
+    parser.add_argument("--conf_thresh", type=float)
+    parser.add_argument("--map_id_to_name", type=str)
+    parser.add_argument("--output_path", type=str)
     args = parser.parse_args()
     main(args)
