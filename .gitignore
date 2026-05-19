@@ -6,3 +6,5 @@ wandb/
 *.onnx
 .venv
 outputs
+*.engine
+*.onnx
