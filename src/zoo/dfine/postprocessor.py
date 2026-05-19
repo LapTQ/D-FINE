@@ -10,7 +10,7 @@ import torchvision
 
 from ...core import register
 
-__all__ = ["DFINEPostProcessor", "CustomPostProcessor"]
+__all__ = ["DFINEPostProcessor", "CustomDFINEPostProcessorWithNMS"]
 
 
 def mod(a, b):
@@ -20,10 +20,19 @@ def mod(a, b):
 
 @register()
 class DFINEPostProcessor(nn.Module):
-    __share__ = ["num_classes", "use_focal_loss", "num_top_queries", "remap_mscoco_category"]
+    __share__ = [
+        "num_classes",
+        "use_focal_loss",
+        "num_top_queries",
+        "remap_mscoco_category",
+    ]
 
     def __init__(
-        self, num_classes=80, use_focal_loss=True, num_top_queries=300, remap_mscoco_category=False
+        self,
+        num_classes=80,
+        use_focal_loss=True,
+        num_top_queries=300,
+        remap_mscoco_category=False,
     ) -> None:
         super().__init__()
         self.use_focal_loss = use_focal_loss
@@ -73,7 +82,9 @@ class DFINEPostProcessor(nn.Module):
             from ...data.dataset import mscoco_label2category
 
             labels = (
-                torch.tensor([mscoco_label2category[int(x.item())] for x in labels.flatten()])
+                torch.tensor(
+                    [mscoco_label2category[int(x.item())] for x in labels.flatten()]
+                )
                 .to(boxes.device)
                 .reshape(labels.shape)
             )
@@ -154,23 +165,24 @@ def box__miniou(boxes1, boxes2):
     return miniou
 
 
-
-def nms(boxes: Union[List, np.ndarray], 
-        scores: Union[List, np.ndarray], 
-        class_labels: Union[List, np.ndarray],
-        iou_threshold: float = 0.5,
-        iou_mode: str = 'iou') -> List[int]:
+def nms(
+    boxes: Union[List, np.ndarray],
+    scores: Union[List, np.ndarray],
+    class_labels: Union[List, np.ndarray],
+    iou_threshold: float = 0.5,
+    iou_mode: str = "iou",
+) -> List[int]:
     """
     Apply Non-Maximum Suppression to remove overlapping bounding boxes.
     Only suppresses boxes within the same class.
-    
+
     Args:
         boxes: Array of bounding boxes in format [[x1, y1, x2, y2], ...]
         scores: Array of confidence scores corresponding to each box
         class_labels: Array of class labels corresponding to each box
         iou_threshold: IoU threshold for suppression (default: 0.5)
         iou_mode: "iou" or "miniou"
-    
+
     Returns:
         List of indices of boxes to keep after NMS
     """
@@ -179,78 +191,95 @@ def nms(boxes: Union[List, np.ndarray],
     scores = np.array(scores)
     class_labels = np.array(class_labels)
 
-    assert iou_mode in ['iou', 'miniou']
-    
+    assert iou_mode in ["iou", "miniou"]
+
     # Validate inputs
     if len(boxes) == 0:
         return []
-    
+
     if not (len(boxes) == len(scores) == len(class_labels)):
         raise ValueError("Number of boxes, scores, and class labels must match")
-    
+
     if boxes.shape[1] != 4:
         raise ValueError("Each box must have 4 coordinates [x1, y1, x2, y2]")
-    
+
     # Get unique classes
     unique_classes = np.unique(class_labels)
-    
+
     all_keep_indices = []
-    
+
     # Apply NMS for each class separately
     for class_id in unique_classes:
         # Get indices of boxes belonging to this class
         class_mask = class_labels == class_id
         class_indices = np.where(class_mask)[0]
-        
+
         if len(class_indices) == 0:
             continue
-        
+
         # Get scores for this class and sort by descending score
         class_scores = scores[class_indices]
         sorted_class_indices = class_indices[np.argsort(class_scores)[::-1]]
-        
+
         class_keep_indices = []
-        
+
         while len(sorted_class_indices) > 0:
             # Take the box with highest score in this class
             current_idx = sorted_class_indices[0]
             class_keep_indices.append(current_idx)
-            
+
             # Remove current box from consideration
             sorted_class_indices = sorted_class_indices[1:]
-            
+
             if len(sorted_class_indices) == 0:
                 break
-            
+
             # Calculate IoU with remaining boxes of the same class
             current_box = boxes[current_idx]
-            
+
             # Compute IoU with all remaining boxes of the same class
-            if iou_mode == 'iou':
-                ious = box__iou(boxes[current_idx: current_idx + 1], boxes[sorted_class_indices])[0]
-            elif iou_mode == 'miniou':
-                ious = box__miniou(boxes[current_idx: current_idx + 1], boxes[sorted_class_indices])[0]
+            if iou_mode == "iou":
+                ious = box__iou(
+                    boxes[current_idx : current_idx + 1], boxes[sorted_class_indices]
+                )[0]
+            elif iou_mode == "miniou":
+                ious = box__miniou(
+                    boxes[current_idx : current_idx + 1], boxes[sorted_class_indices]
+                )[0]
             else:
                 raise ValueError("Not supported iou mode")
-            
+
             # Keep only boxes with IoU below threshold
             keep_mask = ious < iou_threshold
             sorted_class_indices = sorted_class_indices[keep_mask]
-        
+
         all_keep_indices.extend(class_keep_indices)
-    
+
     # Sort the final indices to maintain original order
     all_keep_indices.sort()
-    
+
     return all_keep_indices
 
 
 @register()
-class CustomPostProcessor(nn.Module):
-    __share__ = ["iou_mode", "iou_threshold", "num_classes", "use_focal_loss", "num_top_queries", "remap_mscoco_category"]
+class CustomDFINEPostProcessorWithNMS(nn.Module):
+    __share__ = [
+        "iou_mode",
+        "iou_threshold",
+        "num_classes",
+        "use_focal_loss",
+        "num_top_queries",
+        "remap_mscoco_category",
+    ]
 
     def __init__(
-        self, iou_mode, iou_threshold, num_classes=80, use_focal_loss=True, num_top_queries=300, remap_mscoco_category=False
+        self,
+        iou_mode="iou",
+        iou_threshold=0.5,
+        num_classes=80,
+        use_focal_loss=True,
+        num_top_queries=300,
+        remap_mscoco_category=False,
     ) -> None:
         super().__init__()
         self.iou_mode = iou_mode
@@ -295,11 +324,12 @@ class CustomPostProcessor(nn.Module):
 
         assert labels.shape[0] == boxes.shape[0] == scores.shape[0] == 1
         nms_indices = nms(
-            boxes=boxes[0].detach().cpu().numpy(), 
-            scores=scores[0].detach().cpu().numpy(), 
-            class_labels=labels[0].detach().cpu().numpy(), 
+            boxes=boxes[0].detach().cpu().numpy(),
+            scores=scores[0].detach().cpu().numpy(),
+            class_labels=labels[0].detach().cpu().numpy(),
             iou_threshold=self.iou_threshold,
-            iou_mode=self.iou_mode)
+            iou_mode=self.iou_mode,
+        )
         labels = labels[:, nms_indices]
         boxes = boxes[:, nms_indices]
         scores = scores[:, nms_indices]
@@ -313,7 +343,9 @@ class CustomPostProcessor(nn.Module):
             from ...data.dataset import mscoco_label2category
 
             labels = (
-                torch.tensor([mscoco_label2category[int(x.item())] for x in labels.flatten()])
+                torch.tensor(
+                    [mscoco_label2category[int(x.item())] for x in labels.flatten()]
+                )
                 .to(boxes.device)
                 .reshape(labels.shape)
             )

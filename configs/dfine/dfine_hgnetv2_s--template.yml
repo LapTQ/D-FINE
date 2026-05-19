@@ -130,7 +130,7 @@ task: detection
 
 model: DFINE
 criterion: DFINECriterion
-postprocessor: DFINEPostProcessor  # laptq CustomPostProcessor
+postprocessor: DFINEPostProcessor  # laptq CustomDFINEPostProcessorWithNMS
 
 use_focal_loss: True
 eval_spatial_size: [640, 640] # h w    # laptq
@@ -201,7 +201,7 @@ DFINETransformer:
 DFINEPostProcessor:
   num_top_queries: 300
 
-CustomPostProcessor:
+CustomDFINEPostProcessorWithNMS:
   iou_mode: iou   # laptq iou miniou
   iou_threshold: 0.5
 

@@ -8,4 +8,4 @@ from .dfine_criterion import DFINECriterion
 from .dfine_decoder import DFINETransformer
 from .hybrid_encoder import HybridEncoder
 from .matcher import HungarianMatcher
-from .postprocessor import DFINEPostProcessor, CustomPostProcessor
+from .postprocessor import DFINEPostProcessor, CustomDFINEPostProcessorWithNMS
