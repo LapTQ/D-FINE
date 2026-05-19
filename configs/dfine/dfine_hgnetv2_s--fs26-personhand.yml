@@ -75,8 +75,8 @@ train_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: mnt/hdd10tb/Users/thuongnh/datasets/satudora_mix_kita8jo_19k_v2/images    # laptq
-    ann_file: /home/thuongnh/D-FINE/train.json    # laptq
+    img_folder: /home/laptq/laptq-fs26-shoplifting-detection/data/satudora_mix_kita8jo_19k_v2/images    # laptq
+    ann_file: /home/laptq/laptq-fs26-shoplifting-detection/data/satudora_mix_kita8jo_19k_v2/train.json    # laptq
     return_masks: False
     transforms:
       type: Compose
@@ -110,8 +110,8 @@ val_dataloader:
   type: DataLoader
   dataset:
     type: CocoDetection
-    img_folder: mnt/hdd10tb/Users/thuongnh/datasets/satudora_mix_kita8jo_19k_v2/images    # laptq
-    ann_file: /home/thuongnh/D-FINE/valid.json    # laptq
+    img_folder: /home/laptq/laptq-fs26-shoplifting-detection/data/satudora_mix_kita8jo_19k_v2/images    # laptq
+    ann_file: /home/laptq/laptq-fs26-shoplifting-detection/data/satudora_mix_kita8jo_19k_v2/valid.json    # laptq
     return_masks: False
     transforms:
       type: Compose
