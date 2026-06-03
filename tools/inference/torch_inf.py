@@ -161,7 +161,7 @@ def main(args):
         print("Image processing complete.")
     else:
         # Process as video
-        process_video(model, device, file_path, imgsz, output_dir)
+        process_video(model, device, file_path, imgsz, args.output_dir)
 
 
 if __name__ == "__main__":

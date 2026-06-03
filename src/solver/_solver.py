@@ -241,8 +241,14 @@ class BaseSolver(object):
     def load_resume_state(self, path: str):
         """Load resume"""
         if path.startswith("http"):
+            if dist_utils.is_main_process():
+                _ = torch.hub.load_state_dict_from_url(path, map_location="cpu")
+            if dist_utils.is_dist_available_and_initialized():
+                torch.distributed.barrier()
             state = torch.hub.load_state_dict_from_url(path, map_location="cpu")
         else:
+            if dist_utils.is_dist_available_and_initialized():
+                torch.distributed.barrier()
             state = torch.load(path, map_location="cpu")
 
         # state['model'] = remove_module_prefix(state['model'])
@@ -251,8 +257,14 @@ class BaseSolver(object):
     def load_tuning_state(self, path: str):
         """Load model for tuning and adjust mismatched head parameters"""
         if path.startswith("http"):
+            if dist_utils.is_main_process():
+                _ = torch.hub.load_state_dict_from_url(path, map_location="cpu")
+            if dist_utils.is_dist_available_and_initialized():
+                torch.distributed.barrier()
             state = torch.hub.load_state_dict_from_url(path, map_location="cpu")
         else:
+            if dist_utils.is_dist_available_and_initialized():
+                torch.distributed.barrier()
             state = torch.load(path, map_location="cpu")
 
         module = dist_utils.de_parallel(self.model)
